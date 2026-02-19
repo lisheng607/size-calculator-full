@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数据库记录查看 - 身材尺码计算器</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+      font-size: 2.5em;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+
+    .stat-label {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      color: #667eea;
+      font-size: 32px;
+      font-weight: bold;
+    }
+
+    .controls {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+
+    .btn {
+      padding: 12px 24px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+
+    .btn:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+    }
+
+    .table-container {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      background: #f8f9fa;
+      color: #333;
+      font-weight: 600;
+      text-align: left;
+      padding: 15px 12px;
+      border-bottom: 2px solid #e0e0e0;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 14px;
+    }
+
+    tr:hover {
+      background: #f8f9fa;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .badge-female {
+      background: #ffe4e6;
+      color: #e91e63;
+    }
+
+    .badge-male {
+      background: #e3f2fd;
+      color: #2196f3;
+    }
+
+    .size-badge {
+      background: #667eea;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 60px 20px;
+      color: white;
+      font-size: 18px;
+    }
+
+    .spinner {
+      border: 4px solid rgba(255,255,255,0.3);
+      border-top: 4px solid white;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+    }
+
+    .empty-icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+      opacity: 0.5;
+    }
+
+    .error {
+      background: #ffebee;
+      color: #c62828;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border: 1px solid #ef9a9a;
+    }
+
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 1.8em;
+      }
+      
+      .controls {
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      table {
+        font-size: 12px;
+      }
+      
+      th, td {
+        padding: 8px 6px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>📊 数据库记录查看</h1>
+
+  <!-- 统计卡片 -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">总记录数</div>
+      <div class="stat-value" id="totalCount">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">女性用户</div>
+      <div class="stat-value" id="femaleCount">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">男性用户</div>
+      <div class="stat-value" id="maleCount">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">平均BMI</div>
+      <div class="stat-value" id="avgBmi">-</div>
+    </div>
+  </div>
+
+  <!-- 控制栏 -->
+  <div class="controls">
+    <div style="color: #666; font-size: 14px;">
+      最新20条记录 · 自动刷新
+    </div>
+    <button class="btn" onclick="loadData()">🔄 刷新数据</button>
+  </div>
+
+  <!-- 错误提示 -->
+  <div id="errorMsg" class="error" style="display: none;"></div>
+
+  <!-- 加载状态 -->
+  <div id="loading" class="loading">
+    <div class="spinner"></div>
+    <p>正在加载数据...</p>
+  </div>
+
+  <!-- 数据表格 -->
+  <div id="tableContainer" class="table-container" style="display: none;">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>性别</th>
+          <th>身高</th>
+          <th>体重</th>
+          <th>胸围</th>
+          <th>腰围</th>
+          <th>臀围</th>
+          <th>上装</th>
+          <th>下装</th>
+          <th>BMI</th>
+          <th>创建时间</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 空状态 -->
+  <div id="emptyState" class="empty-state" style="display: none;">
+    <div class="empty-icon">📭</div>
+    <h3 style="color: white; margin-bottom: 10px;">暂无数据</h3>
+    <p style="color: rgba(255,255,255,0.7);">还没有用户提交身材信息</p>
+  </div>
+
+</div>
+
+<script>
+// API地址 - 修改为你的Railway地址
+const API_URL = 'https://web-production-31ba2.up.railway.app/api/records';
+
+// 加载数据
+async function loadData() {
+  const loading = document.getElementById('loading');
+  const tableContainer = document.getElementById('tableContainer');
+  const emptyState = document.getElementById('emptyState');
+  const errorMsg = document.getElementById('errorMsg');
+  
+  // 显示加载状态
+  loading.style.display = 'block';
+  tableContainer.style.display = 'none';
+  emptyState.style.display = 'none';
+  errorMsg.style.display = 'none';
+  
+  try {
+    const response = await fetch(API_URL);
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.error || '获取数据失败');
+    }
+    
+    const records = data.records || [];
+    
+    // 隐藏加载状态
+    loading.style.display = 'none';
+    
+    if (records.length === 0) {
+      // 显示空状态
+      emptyState.style.display = 'block';
+      updateStats(records);
+    } else {
+      // 显示数据表格
+      tableContainer.style.display = 'block';
+      renderTable(records);
+      updateStats(records);
+    }
+    
+  } catch (error) {
+    console.error('加载数据错误:', error);
+    loading.style.display = 'none';
+    errorMsg.textContent = `❌ 加载失败: ${error.message}`;
+    errorMsg.style.display = 'block';
+  }
+}
+
+// 渲染表格
+function renderTable(records) {
+  const tbody = document.getElementById('tableBody');
+  
+  tbody.innerHTML = records.map(record => {
+    const genderClass = record.gender === 'female' ? 'badge-female' : 'badge-male';
+    const genderText = record.gender === 'female' ? '女' : '男';
+    
+    return `
+      <tr>
+        <td>${record.id}</td>
+        <td><span class="badge ${genderClass}">${genderText}</span></td>
+        <td>${record.height} cm</td>
+        <td>${record.weight} kg</td>
+        <td>${record.bust} cm</td>
+        <td>${record.waist} cm</td>
+        <td>${record.hips} cm</td>
+        <td><span class="size-badge">${record.top_size}</span></td>
+        <td><span class="size-badge">${record.bottom_size}</span></td>
+        <td>${record.bmi}</td>
+        <td>${formatDate(record.created_at)}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// 更新统计数据
+function updateStats(records) {
+  const total = records.length;
+  const female = records.filter(r => r.gender === 'female').length;
+  const male = records.filter(r => r.gender === 'male').length;
+  const avgBmi = total > 0 
+    ? (records.reduce((sum, r) => sum + parseFloat(r.bmi), 0) / total).toFixed(1)
+    : '-';
+  
+  document.getElementById('totalCount').textContent = total;
+  document.getElementById('femaleCount').textContent = female;
+  document.getElementById('maleCount').textContent = male;
+  document.getElementById('avgBmi').textContent = avgBmi;
+}
+
+// 格式化日期
+function formatDate(dateStr) {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diff = now - date;
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  
+  if (minutes < 1) return '刚刚';
+  if (minutes < 60) return `${minutes}分钟前`;
+  if (hours < 24) return `${hours}小时前`;
+  if (days < 7) return `${days}天前`;
+  
+  return dateStr.split(' ')[0];
+}
+
+// 页面加载时获取数据
+loadData();
+
+// 每30秒自动刷新
+setInterval(loadData, 30000);
+</script>
+
+</body>
+</html>
