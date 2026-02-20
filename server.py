@@ -239,6 +239,98 @@ def get_records():
         print(f"❌ 获取记录错误: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/admin')
+def admin_page():
+    """管理页面 - 查看数据库记录"""
+    return '''
+    <!DOCTYPE html>
+    <html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>数据管理</title>
+        <style>
+            body {
+                font-family: -apple-system, sans-serif;
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 40px 20px;
+                background: #f5f5f5;
+            }
+            h1 { color: #667eea; }
+            table {
+                width: 100%;
+                background: white;
+                border-collapse: collapse;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            th, td {
+                padding: 12px;
+                text-align: left;
+                border-bottom: 1px solid #e0e0e0;
+            }
+            th {
+                background: #667eea;
+                color: white;
+            }
+            tr:hover { background: #f8f9fa; }
+            .loading { text-align: center; padding: 40px; }
+        </style>
+    </head>
+    <body>
+        <h1>📊 数据库记录管理</h1>
+        <div id="loading" class="loading">加载中...</div>
+        <div id="stats"></div>
+        <table id="dataTable" style="display: none;">
+            <thead>
+                <tr>
+                    <th>ID</th><th>性别</th><th>身高</th><th>体重</th>
+                    <th>胸围</th><th>腰围</th><th>臀围</th>
+                    <th>上装</th><th>下装</th><th>BMI</th><th>时间</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+        
+        <script>
+            fetch('/api/records')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('loading').style.display = 'none';
+                    
+                    if (data.success && data.records.length > 0) {
+                        document.getElementById('stats').innerHTML = 
+                            `<p>总记录数: <strong>${data.count}</strong></p>`;
+                        
+                        document.getElementById('dataTable').style.display = 'table';
+                        document.getElementById('tableBody').innerHTML = 
+                            data.records.map(r => `
+                                <tr>
+                                    <td>${r.id}</td>
+                                    <td>${r.gender === 'female' ? '女' : '男'}</td>
+                                    <td>${r.height}</td>
+                                    <td>${r.weight}</td>
+                                    <td>${r.bust}</td>
+                                    <td>${r.waist}</td>
+                                    <td>${r.hips}</td>
+                                    <td><strong>${r.top_size}</strong></td>
+                                    <td><strong>${r.bottom_size}</strong></td>
+                                    <td>${r.bmi}</td>
+                                    <td>${r.created_at}</td>
+                                </tr>
+                            `).join('');
+                    } else {
+                        document.getElementById('loading').innerHTML = '暂无数据';
+                    }
+                })
+                .catch(err => {
+                    document.getElementById('loading').innerHTML = '加载失败: ' + err;
+                });
+        </script>
+    </body>
+    </html>
+    '''
+    
 # 启动时初始化数据库
 init_database()
 
