@@ -374,21 +374,53 @@ function updateStats(records) {
   document.getElementById('avgBmi').textContent = avgBmi;
 }
 
-// 格式化日期
+// 格式化日期 - 修复时区问题
 function formatDate(dateStr) {
-  const date = new Date(dateStr);
+  let date;
+  
+  // 处理不同的日期格式
+  if (dateStr.includes('T')) {
+    // ISO格式: 2024-02-19T15:30:00Z 或 2024-02-19T15:30:00.123456
+    date = new Date(dateStr);
+  } else {
+    // MySQL格式: 2024-02-19 15:30:00
+    // 服务器时间可能是UTC，需要转换为本地时间
+    // 如果服务器在UTC+0，而你在UTC+8，需要加8小时
+    const utcDate = new Date(dateStr + ' UTC');
+    // 或者直接用本地时间解析（假设服务器时区和客户端一致）
+    date = new Date(dateStr);
+  }
+  
   const now = new Date();
   const diff = now - date;
   const minutes = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
   
+  // 相对时间显示
+  if (diff < 0) {
+    // 如果是未来时间，说明有时区问题，显示绝对时间
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+  
   if (minutes < 1) return '刚刚';
   if (minutes < 60) return `${minutes}分钟前`;
   if (hours < 24) return `${hours}小时前`;
   if (days < 7) return `${days}天前`;
   
-  return dateStr.split(' ')[0];
+  // 超过7天，显示完整日期
+  return date.toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 }
 
 // 页面加载时获取数据
